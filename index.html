@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abi-Kombinator Bayern</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+
+/* Layout: links die Wahl in Schritten (Belegung → Leistungsfach → Abitur), rechts Stundentafel, Einbringung und Regelprüfung, die ständig mitlaufen. */
+:root{
+  --bg:#f7f6f2; --panel:#ffffff; --fg:#1d2230; --muted:#5f6675; --line:#d9d7cf;
+  --accent:#1f4e9c; --accent-soft:#e3ebf8; --accent-fg:#ffffff;
+  --ok:#1f7a4d; --ok-soft:#e1f2e8; --bad:#b4322b; --bad-soft:#f9e4e2; --warn:#9a6a0b; --warn-soft:#fbf0d6;
+  --ea:#6b3fa0; --ea-soft:#eee6f7;
+  --display:"Source Serif 4",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161922; --panel:#1f2330; --fg:#e8e9ee; --muted:#9aa1b2; --line:#353a4a;
+  --accent:#7ea6e8; --accent-soft:#273553; --accent-fg:#0f1420;
+  --ok:#5fcb8e; --ok-soft:#1d3a2b; --bad:#f08a82; --bad-soft:#4a2320; --warn:#e6b85c; --warn-soft:#423311;
+  --ea:#c3a2ec; --ea-soft:#3a2b52; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161922; --panel:#1f2330; --fg:#e8e9ee; --muted:#9aa1b2; --line:#353a4a;
+  --accent:#7ea6e8; --accent-soft:#273553; --accent-fg:#0f1420;
+  --ok:#5fcb8e; --ok-soft:#1d3a2b; --bad:#f08a82; --bad-soft:#4a2320; --warn:#e6b85c; --warn-soft:#423311;
+  --ea:#c3a2ec; --ea-soft:#3a2b52; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+*{box-sizing:border-box}
+.wrap{max-width:1240px;margin:0 auto}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3vw,2.3rem);margin:0 0 4px;text-wrap:balance;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:72ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px;min-width:0}
+.step h2{font-family:var(--display);font-size:1.15rem;margin:0 0 2px;font-weight:600}
+.step .hint{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.fields{display:grid;gap:10px}
+.field{display:grid;grid-template-columns:8.5rem 1fr;gap:8px;align-items:start}
+@media (max-width:520px){.field{grid-template-columns:1fr}}
+.field .lab{font-size:.8rem;color:var(--muted);font-weight:600;padding-top:7px;line-height:1.2;overflow-wrap:anywhere;hyphens:auto;min-width:0}
+.field .lab small{display:block;font-weight:400;font-family:var(--mono);font-size:.7rem;opacity:.8}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0;align-items:center}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:999px;padding:5px 12px;font:inherit;font-size:.9rem;cursor:pointer;line-height:1.3;display:inline-flex;align-items:center;gap:6px}
+.chip:hover{border-color:var(--accent)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:500}
+.chip.fixed{background:var(--bg);border-style:dashed;cursor:default;color:var(--muted)}
+.chip.ea{background:var(--ea-soft);border-color:var(--ea);color:var(--fg);cursor:default}
+.chip.lf{background:var(--ea);border-color:var(--ea);color:#fff;cursor:default}
+.chip[disabled]{opacity:.4;cursor:not-allowed}
+.chip .tag{font-size:.68rem;font-family:var(--mono);opacity:.75}
+.toggle{display:flex;align-items:flex-start;gap:10px;font-size:.93rem;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--accent);margin-top:2px;flex:none}
+.note{margin-top:12px;padding:10px 12px;background:var(--accent-soft);border-radius:8px;font-size:.9rem}
+.note label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.note input{margin-top:3px;accent-color:var(--accent)}
+.abi{display:grid;gap:6px}
+.abirow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.abirow .name{font-weight:500;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.pill{font-size:.68rem;font-family:var(--mono);padding:1px 7px;border-radius:999px;border:1px solid currentColor}
+.pill.ea{color:var(--ea)}.pill.ga{color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{font:inherit;font-size:.82rem;padding:4px 10px;border:0;background:var(--panel);color:var(--fg);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.seg button[disabled]{opacity:.35;cursor:not-allowed}
+.empty{color:var(--muted);font-style:italic;font-size:.92rem}
+.verdict{border-radius:10px;padding:14px 18px;border:1px solid var(--line);background:var(--panel)}
+.verdict.ok{border-color:var(--ok);background:var(--ok-soft)}
+.verdict.bad{border-color:var(--bad);background:var(--bad-soft)}
+.verdict.warn{border-color:var(--warn);background:var(--warn-soft)}
+.verdict h2{margin:0 0 4px;font-family:var(--display);font-size:1.15rem}
+.verdict p{margin:0;font-size:.92rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{margin:0 0 8px;font-size:.95rem;font-weight:600;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.card h3 .sum{font-family:var(--mono);font-size:.8rem;font-weight:500;color:var(--muted)}
+.card p.sub{margin:0 0 10px;color:var(--muted);font-size:.86rem}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem;font-variant-numeric:tabular-nums}
+th,td{padding:4px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:9rem}
+thead th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr.sec td{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-top:8px;border-bottom:0}
+tr.total td{font-weight:600;border-top:2px solid var(--fg);border-bottom:0}
+td.lfc{color:var(--ea);font-weight:600}
+td.dim{color:var(--muted)}
+.rule{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:.88rem;align-items:start}
+.rule:first-child{border-top:0}
+.rule .ic{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;margin-top:2px}
+.rule.ok .ic{background:var(--ok-soft);color:var(--ok)}
+.rule.bad .ic{background:var(--bad-soft);color:var(--bad)}
+.rule.warn .ic{background:var(--warn-soft);color:var(--warn)}
+.rule .why{color:var(--muted);font-size:.82rem;display:block}
+.eb{display:grid;gap:3px;font-size:.86rem}
+.eb div{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
+.eb div span:last-child{font-family:var(--mono)}
+.eb div.tot{font-weight:600;border-bottom:0;border-top:2px solid var(--fg);margin-top:4px;padding-top:6px}
+.combolist{display:grid;gap:5px;max-height:320px;overflow:auto;font-size:.88rem}
+.combo{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:5px 8px;border-radius:6px;background:var(--bg);cursor:pointer;border:1px solid transparent;text-align:left;font:inherit;color:var(--fg)}
+.combo:hover{border-color:var(--accent)}
+.combo .k{font-family:var(--mono);font-size:.78rem;padding:1px 6px;border-radius:4px;background:var(--panel);border:1px solid var(--line);white-space:nowrap}
+.combo .k.lf{background:var(--ea);color:#fff;border-color:var(--ea)}
+.combo .k.ea{background:var(--ea-soft);border-color:var(--ea)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+footer{margin-top:28px;color:var(--muted);font-size:.82rem;max-width:84ch}
+footer a{color:var(--accent)}
+.reset{font:inherit;font-size:.82rem;color:var(--accent);background:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:8px}
+@media (prefers-reduced-motion:no-preference){.chip,.seg button{transition:background .12s,border-color .12s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Abi-Kombinator Bayern</h1>
+  <p>Belegung und Abiturfächer der neuen bayerischen G9-Oberstufe (Jgst. 12/13) durchspielen: Wahlpflichtfächer, Leistungsfach, Vertiefungskurs und Prüfungsfächer zusammenstellen – rechts laufen Stundentafel, Einbringung und Regelprüfung mit.</p>
+  <button type="button" class="reset" id="reset">Alles zurücksetzen</button>
+</header>
+
+<div class="grid">
+<main>
+
+  <section class="step">
+    <h2>1 · Voraussetzungen</h2>
+    <p class="hint">Was aus der Mittelstufe mitgebracht wird.</p>
+    <div class="fields">
+      <div class="field"><div class="lab">Ausbildungs&shy;richtung</div>
+        <label class="toggle"><input type="checkbox" id="ntg" checked> NTG (naturwissenschaftlich-technologisch) – Informatik seit Jgst. 9, daher als Wahlpflichtfach und Leistungsfach wählbar</label></div>
+      <div class="field"><div class="lab">Spät beginnende Fremdsprache</div>
+        <label class="toggle"><input type="checkbox" id="spbOk"> Wahlunterricht in Jgst. 10/11 besucht (z. B. Spanisch) – dann als Wahlpflichtfach wählbar, im Abitur nur mündlich</label></div>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2>2 · Belegung in 12/13</h2>
+    <p class="hint">Pflichtfächer stehen fest (gestrichelt). Bei den Wahlpflichtfächern ist jeweils eine Alternative zu wählen.</p>
+    <div class="fields">
+      <div class="field"><div class="lab">Pflicht <small>4 Halbjahre</small></div>
+        <div class="chips">
+          <span class="chip fixed">Deutsch <span class="tag">4 · eA</span></span>
+          <span class="chip fixed">Mathematik <span class="tag">4 · eA</span></span>
+          <span class="chip fixed">Geschichte <span class="tag">2</span></span>
+          <span class="chip fixed">Sport <span class="tag">2</span></span>
+          <span class="chip fixed">W-Seminar <span class="tag">2 · bis 13/1</span></span>
+          <span class="chip fixed">Politik u. Gesellschaft <span class="tag">2 · nur 12</span></span>
+        </div></div>
+      <div class="field"><div class="lab">Religion / Ethik <small>2 Std.</small></div><div class="chips" id="relChips"></div></div>
+      <div class="field"><div class="lab">Fremdsprache <small>3 Std.</small></div><div class="chips" id="fs1Chips"></div></div>
+      <div class="field"><div class="lab">Naturwissenschaft <small>3 Std.</small></div><div class="chips" id="nw1Chips"></div></div>
+      <div class="field"><div class="lab">Kunst / Musik <small>2 Std.</small></div><div class="chips" id="kumuChips"></div></div>
+      <div class="field"><div class="lab">Geo / WR in 12 <small>2 Std.</small></div><div class="chips" id="geowrChips"></div></div>
+      <div class="field"><div class="lab">Weiterführung in 13 <small>2 Std.</small></div><div class="chips" id="q13Chips"></div></div>
+      <div class="field"><div class="lab">Zweites Wahlpflicht&shy;fach <small>3 Std.</small></div><div class="chips" id="wp2Chips"></div></div>
+      <div class="field"><div class="lab">Vertiefungskurs <small>2 Std. · nur 12</small></div><div class="chips" id="vkChips"></div></div>
+      <div class="field"><div class="lab">Zusatzangebot <small>freiwillig</small></div><div class="chips" id="zusChips"></div></div>
+    </div>
+    <div class="note" id="vkNote" hidden></div>
+  </section>
+
+  <section class="step">
+    <h2>3 · Leistungsfach</h2>
+    <p class="hint">Vier Halbjahre auf erhöhtem Niveau (eA), 2 Wochenstunden mehr, automatisch Abiturfach. Nur belegte Fächer; Deutsch und Mathematik sind ohnehin eA.</p>
+    <div class="fields" id="lfGroups"></div>
+    <div class="note" id="subBox" hidden><label><input type="checkbox" id="subst"><span id="substText"></span></label></div>
+  </section>
+
+  <section class="step">
+    <h2>4 · Weitere Abiturfächer</h2>
+    <p class="hint" id="pickHint"></p>
+    <div class="fields" id="pickGroups"></div>
+  </section>
+
+  <section class="step">
+    <h2>5 · Schriftlich oder mündlich</h2>
+    <p class="hint">Drei schriftliche Prüfungen und zwei Kolloquien. Mindestens zwei der drei schriftlichen Fächer müssen auf erhöhtem Niveau sein.</p>
+    <div class="abi" id="abiList"></div>
+    <div class="legend"><span><i class="sw" style="background:var(--ea)"></i> eA = erhöhtes Anforderungsniveau</span><span><i class="sw" style="background:var(--line)"></i> gA = grundlegendes Niveau</span></div>
+  </section>
+
+</main>
+
+<aside class="side">
+  <div class="verdict" id="verdict"><h2>Noch unvollständig</h2><p>Belegung und Leistungsfach wählen.</p></div>
+  <div class="card"><h3>Stundentafel <span class="sum" id="hoursSum"></span></h3><div class="tbl" id="hours"></div></div>
+  <div class="card"><h3>Einbringung <span class="sum" id="ebSum"></span></h3><p class="sub">Pflicht-Halbjahresleistungen (HJL) für die 40 einzubringenden Leistungen – je nach Fächerwahl bleiben freie Einbringungen übrig.</p><div class="eb" id="eb"></div></div>
+  <div class="card"><h3>Regelprüfung</h3><div id="rules"></div></div>
+  <div class="card">
+    <h3>Gültige Kombinationen für dieses Leistungsfach</h3>
+    <p class="sub" id="comboInfo"></p>
+    <div class="combolist" id="comboList"></div>
+  </div>
+</aside>
+</div>
+
+<footer>
+Grundlage: Belegungs-, Einbringungs- und Abiturregeln nach <a href="https://www.gymnasiale-oberstufe.bayern.de/">gymnasiale-oberstufe.bayern.de</a> (Stand Nov. 2025) und die Stundentafel der Profil- und Leistungsstufe, wie sie Schulen für den ersten G9-Jahrgang veröffentlicht haben (33/33/31/29 Wochenstunden ohne, 35/35/28/26 mit Vertiefungskurs). Nicht abgebildet: Lehrplanalternativen in Physik (Astro-/Biophysik), Geologie, Zusatzfächer außerhalb der Liste, das konkrete Angebot der Schule sowie Kunst/Musik/Sport als Leistungsfach mit ihrer besonderen Fachprüfung in Jgst. 11. Für die verbindliche Planung das <a href="https://www.gymnasiale-oberstufe.bayern.de/">Fächerplanungstool des Kultusministeriums</a> und die Oberstufenkoordination nutzen.
+</footer>
+</div>
+
+<script>
+// ---------- Katalog ----------
+const FSL=[['E','Englisch'],['F','Französisch'],['L','Latein'],['Sp','Spanisch'],['It','Italienisch'],['Ru','Russisch']];
+const NWL=[['B','Biologie'],['C','Chemie'],['Ph','Physik']];
+const NAMES={D:'Deutsch',M:'Mathematik',G:'Geschichte',PuG:'Politik u. Gesellschaft',Geo:'Geographie',WR:'Wirtschaft u. Recht',Rel:'Religionslehre',Eth:'Ethik',Ku:'Kunst',Mu:'Musik',Spo:'Sport',Inf:'Informatik',InfS:'Spät beg. Informatik',SPB:'Spät beg. Fremdsprache',W:'W-Seminar',VKD:'Vertiefungskurs Deutsch',VKM:'Vertiefungskurs Mathematik'};
+FSL.forEach(([k,n])=>NAMES[k]=n);NWL.forEach(([k,n])=>NAMES[k]=n);
+const FIELDS={SLK:'Sprachlich-literarisch-künstlerisch',GPR:'Gesellschaftswissenschaftlich',MINT:'Mathematisch-naturwissenschaftlich',none:'Kein Aufgabenfeld'};
+const ZUS=[['zNW','dritte Naturwissenschaft',[3,3,3,3]],['zFS','weitere Fremdsprache',[3,3,3,3]],['zInf','Informatik als Zusatz',[3,3,3,3]],['zGeol','Geologie (nur 13)',[0,0,2,2]],['zEns','Chor / Orchester / Ensemble',[2,2,2,2]],['zVK','Vertiefungskurs als Zusatz',[2,2,0,0]]];
+
+// ---------- Zustand ----------
+const DEF={ntg:true,spbOk:false,rel:'Rel',fs1:'E',nw1:'B',kumu:'Mu',geowr:'Geo',q13:'Geo',wp2:'C',vk:null,zus:[],lf:null,subst:false,picks:[],written:{}};
+let state=JSON.parse(JSON.stringify(DEF));
+try{const s=JSON.parse(localStorage.getItem('abikombi2')||'null');if(s)state=Object.assign(JSON.parse(JSON.stringify(DEF)),s);}catch(e){}
+function save(){try{localStorage.setItem('abikombi2',JSON.stringify(state))}catch(e){}}
+
+// ---------- Abgeleitete Belegung ----------
+// Liefert alle belegten Fächer mit Stunden je Halbjahr und Metadaten.
+function kindOf(id){
+  if(id==='D'||id==='M')return 'core';
+  if(FSL.some(x=>x[0]===id))return 'fs';
+  if(NWL.some(x=>x[0]===id))return 'nw';
+  if(id==='Inf')return 'inf';if(id==='InfS')return 'infs';if(id==='SPB')return 'spb';
+  if(['G','PuG','Geo','WR','Rel','Eth'].includes(id))return 'gpr';
+  if(id==='Ku'||id==='Mu')return 'art';if(id==='Spo')return 'sport';return 'other';
+}
+function fieldOf(id){const k=kindOf(id);if(id==='D'||k==='fs'||k==='spb'||k==='art')return 'SLK';if(k==='gpr')return 'GPR';if(id==='M'||k==='nw'||k==='inf'||k==='infs')return 'MINT';return 'none';}
+function wp2Kind(){return kindOf(state.wp2);}
+function vkPossible(){ // VK D braucht eine zweite fortgeführte FS, VK M eine zweite NW oder Informatik (nicht als LF)
+  const k=wp2Kind();const isLF=state.lf===state.wp2;
+  return {VKD:k==='fs'&&!isLF,VKM:(k==='nw'||k==='inf')&&!isLF};
+}
+function belegung(){
+  const rows=[]; // {id,name,h:[4],sec:'Pflicht'|'Wahlpflicht'|'Profil'|'Zusatz',abi:bool(4 HJ belegt),lfOk}
+  const add=(id,name,h,sec,abi,lfOk)=>rows.push({id,name,h,sec,abi,lfOk:!!lfOk});
+  add('D','Deutsch (eA)',[4,4,4,4],'Pflicht',true,false);
+  add('M','Mathematik (eA)',[4,4,4,4],'Pflicht',true,false);
+  add(state.fs1,NAMES[state.fs1],[3,3,3,3],'Pflicht',true,true);
+  add(state.nw1,NAMES[state.nw1],[3,3,3,3],'Pflicht',true,true);
+  add(state.rel,NAMES[state.rel],[2,2,2,2],'Pflicht',true,true);
+  add('G','Geschichte',[2,2,2,2],'Pflicht',true,true);
+  const q13=state.q13;
+  add('PuG','Politik u. Gesellschaft',q13==='PuG'?[2,2,2,2]:[2,2,0,0],'Pflicht',q13==='PuG',q13==='PuG');
+  add(state.geowr,NAMES[state.geowr],q13===state.geowr?[2,2,2,2]:[2,2,0,0],'Wahlpflicht',q13===state.geowr,q13===state.geowr);
+  if(q13!=='PuG'&&q13!==state.geowr&&q13)add(q13,NAMES[q13]+' (ab 13)',[0,0,2,2],'Wahlpflicht',false,false);
+  add(state.kumu,NAMES[state.kumu],[2,2,2,2],'Wahlpflicht',true,true);
+  add('Spo','Sport',[2,2,2,2],'Pflicht',true,true);
+  // zweites Wahlpflichtfach
+  const vp=vkPossible();const dropped=(state.vk==='VKD'&&vp.VKD)||(state.vk==='VKM'&&vp.VKM);
+  const k2=wp2Kind();
+  add(state.wp2,NAMES[state.wp2]+(dropped?' (nur 12)':''),dropped?[3,3,0,0]:[3,3,3,3],'Wahlpflicht',!dropped,!dropped&&(k2==='fs'||k2==='nw'||k2==='inf'));
+  if(dropped)add(state.vk,NAMES[state.vk],[2,2,0,0],'Wahlpflicht',false,false);
+  add('W','W-Seminar',[2,2,2,0],'Profil',false,false);
+  for(const z of state.zus){const d=ZUS.find(x=>x[0]===z);if(d)add(z,d[1],d[2],'Zusatz',false,false);}
+  return rows;
+}
+function minHours(){const vp=vkPossible();return (state.vk==='VKD'&&vp.VKD)||(state.vk==='VKM'&&vp.VKM)?124:126;}
+function lfCandidates(){return belegung().filter(r=>r.lfOk&&r.sec!=='Zusatz');}
+function abiCandidates(){ // Fächer, die als weiteres (gA-)Abiturfach in Frage kommen
+  return belegung().filter(r=>r.abi&&r.sec!=='Zusatz'&&r.id!=='D'&&r.id!=='M'&&r.id!=='Spo'&&r.id!==state.lf);
+}
+function oralOnly(id,level){const k=kindOf(id);if(k==='spb'||k==='infs')return true;if(k==='art'&&level==='gA')return true;return false;}
+function substKind(){const k=kindOf(state.lf);if(k==='fs')return 'D';if(k==='nw'||k==='inf')return 'M';return null;}
+function needed(){return state.subst&&substKind()?3:2;}
+function abiSet(){
+  const out=[];const sk=state.subst?substKind():null;
+  if(sk!=='D')out.push({id:'D',name:'Deutsch',level:'eA',field:'SLK'});
+  if(sk!=='M')out.push({id:'M',name:'Mathematik',level:'eA',field:'MINT'});
+  if(state.lf)out.push({id:state.lf,name:NAMES[state.lf],level:'eA',field:fieldOf(state.lf),lf:true,k:kindOf(state.lf)});
+  for(const id of state.picks)out.push({id,name:NAMES[id],level:'gA',field:fieldOf(id),k:kindOf(id)});
+  return out;
+}
+
+// ---------- Regelprüfung Abiturfächer (rein) ----------
+function checkSet(lfId,picks,subst){
+  const res=[];const lk=kindOf(lfId);const sk=subst?(lk==='fs'?'D':(lk==='nw'||lk==='inf')?'M':null):null;
+  const set=[];if(sk!=='D')set.push({id:'D',field:'SLK',k:'core'});if(sk!=='M')set.push({id:'M',field:'MINT',k:'core'});
+  set.push({id:lfId,field:fieldOf(lfId),k:lk,lf:true});for(const id of picks)set.push({id,field:fieldOf(id),k:kindOf(id)});
+  const need=sk?3:2;
+  res.push({ok:picks.length===need,label:`Fünf Prüfungsfächer: Leistungsfach, ${sk==='D'?'Mathematik':sk==='M'?'Deutsch':'Deutsch, Mathematik'} und ${need} weitere auf gA`,why:picks.length===need?'':`${picks.length} von ${need} weiteren Fächern gewählt.`});
+  const fields=new Set(set.map(e=>e.field));const missing=['SLK','GPR','MINT'].filter(f=>!fields.has(f));
+  res.push({ok:!missing.length,label:'Alle drei Aufgabenfelder abgedeckt',why:missing.length?'Fehlt: '+missing.map(f=>FIELDS[f]).join(', ')+(set.some(e=>e.field==='none')?' – Sport zählt zu keinem Aufgabenfeld.':''):''});
+  const free=set.filter(e=>e.k!=='core');
+  const hasFSNW=free.some(e=>e.k==='fs'||e.k==='nw');
+  res.push({ok:hasFSNW,label:'Unter Leistungsfach und gA-Fächern: mindestens eine fortgeführte Fremdsprache oder Naturwissenschaft',why:hasFSNW?'':'Informatik und spät beginnende Sprachen zählen hier nicht.'});
+  const hasGPR=free.some(e=>e.k==='gpr');
+  res.push({ok:hasGPR,label:'Unter Leistungsfach und gA-Fächern: mindestens ein gesellschaftswissenschaftliches Fach',why:hasGPR?'':'Geschichte, PuG, Geographie, WR oder Religion/Ethik – nur wenn in 12 und 13 belegt.'});
+  if(sk==='M'){res.push({ok:free.some(e=>!e.lf&&(e.k==='nw'||e.k==='inf')),label:'Substitution Mathematik: eine weitere Naturwissenschaft oder Informatik als Prüfungsfach',why:''});
+    res.push({ok:free.some(e=>e.k==='fs'||e.k==='spb'),label:'Substitution Mathematik: eine Fremdsprache als Prüfungsfach',why:''});}
+  if(sk==='D')res.push({ok:free.some(e=>!e.lf&&(e.k==='fs'||e.k==='spb')),label:'Substitution Deutsch: eine weitere Fremdsprache als Prüfungsfach',why:''});
+  if(free.some(e=>e.k==='inf'||e.k==='infs'))res.push({ok:free.some(e=>e.k==='fs'||e.k==='nw'),label:'Informatik nur zusätzlich zu einer Naturwissenschaft oder fortgeführten Fremdsprache',why:''});
+  return {res,ok:res.every(r=>r.ok)};
+}
+function checkWritten(){
+  const set=abiSet();const res=[];
+  const w=set.filter(e=>state.written[e.id]==='S'),m=set.filter(e=>state.written[e.id]==='M'),unset=set.filter(e=>!state.written[e.id]);
+  res.push({ok:w.length===3&&m.length===2,label:'Drei schriftliche Prüfungen, zwei Kolloquien',why:unset.length?`${unset.length} Fach/Fächer noch nicht zugeordnet.`:w.length!==3?`${w.length} schriftlich, ${m.length} mündlich.`:''});
+  const eaW=w.filter(e=>e.level==='eA').length;
+  res.push({ok:eaW>=2||w.length<3,label:'Mindestens zwei der drei schriftlichen Fächer auf erhöhtem Niveau',why:eaW<2&&w.length===3?`Nur ${eaW} eA-Fach schriftlich.`:''});
+  const sk=state.subst?substKind():null;
+  if(sk){const must=set.filter(e=>e.level==='eA');const bad=must.filter(e=>state.written[e.id]==='M');
+    res.push({ok:!bad.length,label:`Bei Substitution: ${must.map(e=>e.name).join(' und ')} müssen schriftlich geprüft werden`,why:bad.length?bad.map(e=>e.name).join(', ')+' steht auf mündlich.':''});}
+  const oo=set.filter(e=>oralOnly(e.id,e.level)&&state.written[e.id]==='S');
+  if(set.some(e=>oralOnly(e.id,e.level)))res.push({ok:!oo.length,label:'Nur mündlich prüfbar: spät beginnende Sprachen/Informatik, Kunst und Musik auf gA',why:oo.length?oo.map(e=>e.name).join(', ')+' kann nicht schriftlich geprüft werden.':''});
+  return res;
+}
+// ---------- Belegungsprüfung ----------
+function checkBelegung(){
+  const res=[];const rows=belegung();const tot=[0,1,2,3].map(i=>rows.reduce((a,r)=>a+r.h[i],0)+(state.lf?2:0));
+  const sum=tot.reduce((a,b)=>a+b,0);const min=minHours();
+  res.push({ok:sum>=min,label:`Mindestens ${min} Halbjahreswochenstunden in 12/13`,why:sum>=min?`${sum} belegt.`:`Nur ${sum} belegt – ${min-sum} fehlen (z. B. Zusatzangebot).`});
+  const fsCount=rows.filter(r=>kindOf(r.id)==='fs').length,nwCount=rows.filter(r=>kindOf(r.id)==='nw').length;
+  res.push({ok:fsCount>=1&&nwCount>=1,label:'Eine fortgeführte Fremdsprache und eine Naturwissenschaft über vier Halbjahre',why:''});
+  if(state.vk){const vp=vkPossible();const ok=(state.vk==='VKD'&&vp.VKD)||(state.vk==='VKM'&&vp.VKM);
+    res.push({ok,label:state.vk==='VKD'?'Vertiefungskurs Deutsch: zweite fortgeführte Fremdsprache als Wahlpflichtfach, die in 13 entfällt':'Vertiefungskurs Mathematik: zweite Naturwissenschaft oder Informatik als Wahlpflichtfach, die in 13 entfällt',why:ok?'':'Passt nicht zum zweiten Wahlpflichtfach oder dieses ist Leistungsfach (muss dann 4 Halbjahre laufen).'});}
+  if(state.lf&&kindOf(state.lf)==='inf'&&state.vk==='VKM')res.push({ok:false,label:'Leistungsfach Informatik schließt den Vertiefungskurs Mathematik aus',why:'Nur als Zusatzangebot möglich.'});
+  if(state.lf&&!lfCandidates().some(r=>r.id===state.lf))res.push({ok:false,label:'Leistungsfach muss belegt sein und vier Halbjahre laufen',why:''});
+  return {res,ok:res.every(r=>r.ok),tot,sum,min};
+}
+// ---------- Einbringung ----------
+function einbringung(){
+  const rows=belegung();const abi=new Set(abiSet().map(e=>e.id));const items=[];
+  const fsIds=rows.filter(r=>kindOf(r.id)==='fs'||kindOf(r.id)==='spb').map(r=>r.id);
+  const nwIds=rows.filter(r=>kindOf(r.id)==='nw').map(r=>r.id);
+  const vp=vkPossible();const dropped=(state.vk==='VKD'&&vp.VKD)||(state.vk==='VKM'&&vp.VKM);
+  for(const r of rows){
+    const n=r.h.filter(x=>x>0).length;let p=0,why='';
+    if(r.id==='W'){p=4;why='2 HJL + Seminararbeit (zählt wie 2)';}
+    else if(r.id===state.vk){continue;}
+    else if(abi.has(r.id)){p=4;why=r.id==='D'||r.id==='M'?'Pflichtfach eA':r.id===state.lf?'Leistungsfach':'Abiturfach';}
+    else if(r.sec==='Zusatz'){p=0;why='freiwillig, höchstens 3';}
+    else if(r.id==='Spo'){p=0;why='freiwillig, höchstens 3';}
+    else if(dropped&&r.id===state.wp2){p=3;why='zusammen mit dem Vertiefungskurs: 3 aus 12/1–12/2';}
+    else if(fsIds.length===1&&fsIds[0]===r.id){p=4;why='einzige Fremdsprache';}
+    else if(nwIds.length===1&&nwIds[0]===r.id){p=4;why='einzige Naturwissenschaft';}
+    else{p=Math.max(n-1,0);why=`${n} belegt, eine streichbar`;}
+    items.push({name:r.name,p,why});
+  }
+  const pf=items.reduce((a,i)=>a+i.p,0);
+  return {items,pf,free:40-pf};
+}
+
+// ---------- Rendering ----------
+const $=id=>document.getElementById(id);
+function chip(label,on,cls){const b=document.createElement('button');b.type='button';b.className='chip'+(on?' on':'')+(cls?' '+cls:'');b.innerHTML=label;return b;}
+function radio(box,options,cur,set){box.innerHTML='';options.forEach(([id,name,dis])=>{const b=chip(name,cur===id);b.id=box.id+'_'+id;b.disabled=!!dis;b.onclick=()=>{set(id);update();};box.append(b);});}
+
+function renderBelegung(){
+  radio($('relChips'),[['Rel','Religionslehre'],['Eth','Ethik']],state.rel,v=>state.rel=v);
+  radio($('fs1Chips'),FSL,state.fs1,v=>{state.fs1=v;if(state.wp2===v)state.wp2='C';});
+  radio($('nw1Chips'),NWL,state.nw1,v=>{state.nw1=v;if(state.wp2===v)state.wp2=FSL[1][0];});
+  radio($('kumuChips'),[['Ku','Kunst'],['Mu','Musik']],state.kumu,v=>state.kumu=v);
+  radio($('geowrChips'),[['Geo','Geographie'],['WR','Wirtschaft u. Recht']],state.geowr,v=>{state.geowr=v;if(state.q13!=='PuG')state.q13=v;});
+  radio($('q13Chips'),[['PuG','Politik u. Gesellschaft'],[state.geowr,NAMES[state.geowr]]],state.q13,v=>state.q13=v);
+  const wp=[];
+  FSL.filter(x=>x[0]!==state.fs1).forEach(([k,n])=>wp.push([k,n+' <span class="tag">2. FS</span>']));
+  NWL.filter(x=>x[0]!==state.nw1).forEach(([k,n])=>wp.push([k,n+' <span class="tag">2. NW</span>']));
+  wp.push(state.ntg?['Inf','Informatik']:['InfS','Spät beg. Informatik <span class="tag">mdl.</span>']);
+  wp.push(['SPB','Spät beg. Fremdsprache <span class="tag">mdl.</span>',!state.spbOk]);
+  radio($('wp2Chips'),wp,state.wp2,v=>state.wp2=v);
+  const vp=vkPossible();
+  radio($('vkChips'),[[null,'keiner'],['VKD','Vertiefungskurs Deutsch',!vp.VKD],['VKM','Vertiefungskurs Mathematik',!vp.VKM]],state.vk,v=>state.vk=v);
+  const zb=$('zusChips');zb.innerHTML='';ZUS.forEach(([k,n,h])=>{const on=state.zus.includes(k);const b=chip(n+` <span class="tag">${h.filter(x=>x).join('/')}</span>`,on);b.id='zus_'+k;b.onclick=()=>{state.zus=on?state.zus.filter(x=>x!==k):[...state.zus,k];update();};zb.append(b);});
+  const vn=$('vkNote');
+  if(state.vk&&((state.vk==='VKD'&&vp.VKD)||(state.vk==='VKM'&&vp.VKM))){vn.hidden=false;vn.innerHTML=state.vk==='VKD'?`<b>Vertiefungskurs Deutsch:</b> 2 zusätzliche Stunden in 12/1 und 12/2; ${NAMES[state.wp2]} läuft nur in 12 und entfällt in 13. Mindeststunden sinken auf 124. Einbringung: 3 HJL aus Vertiefungskurs und ${NAMES[state.wp2]} zusammen.`:`<b>Vertiefungskurs Mathematik:</b> 2 zusätzliche Stunden in 12/1 und 12/2; ${NAMES[state.wp2]} läuft nur in 12 und entfällt in 13. Mindeststunden sinken auf 124. Einbringung: 3 HJL aus Vertiefungskurs und ${NAMES[state.wp2]} zusammen.`;}
+  else if(state.vk){vn.hidden=false;vn.innerHTML='<b>Vertiefungskurs nicht möglich:</b> Dafür muss das zweite Wahlpflichtfach eine fortgeführte Fremdsprache (VK Deutsch) bzw. eine Naturwissenschaft oder Informatik (VK Mathematik) sein und darf nicht Leistungsfach sein. Alternativ als Zusatzangebot belegen – dann bleibt das zweite Fach in 13 Pflicht.';}
+  else vn.hidden=true;
+}
+function groupRows(container,rows,render){
+  container.innerHTML='';
+  for(const f of ['SLK','GPR','MINT','none']){
+    const items=rows.filter(r=>fieldOf(r.id)===f);if(!items.length)continue;
+    const row=document.createElement('div');row.className='field';const lab=document.createElement('div');lab.className='lab';lab.textContent=FIELDS[f];
+    const chips=document.createElement('div');chips.className='chips';items.forEach(r=>chips.append(render(r)));row.append(lab,chips);container.append(row);
+  }
+}
+function renderLF(){
+  groupRows($('lfGroups'),lfCandidates(),r=>{const fp=['Ku','Mu','Spo'].includes(r.id);const b=chip(NAMES[r.id]+(fp?' <span class="tag">Fachprüfung</span>':''),state.lf===r.id);b.id='lf_'+r.id;b.onclick=()=>{state.lf=state.lf===r.id?null:r.id;state.subst=false;update();};return b;});
+  const sk=substKind();const sb=$('subBox');
+  if(sk){sb.hidden=false;$('subst').checked=state.subst;$('substText').innerHTML=sk==='D'
+    ?`<b>Deutsch substituieren:</b> Das Leistungsfach ${NAMES[state.lf]} ersetzt Deutsch als Prüfungsfach. Deutsch bleibt Pflichtfach auf eA, wird aber nicht geprüft. Dann sind drei weitere gA-Fächer nötig, darunter eine weitere Fremdsprache und ein GPR-Fach; Leistungsfach und Mathematik müssen schriftlich geprüft werden.`
+    :`<b>Mathematik substituieren:</b> Das Leistungsfach ${NAMES[state.lf]} ersetzt Mathematik als Prüfungsfach. Mathe bleibt Pflichtfach auf eA, wird aber nicht geprüft. Dann sind drei weitere gA-Fächer nötig: eine weitere Naturwissenschaft oder Informatik, eine Fremdsprache und ein GPR-Fach; Leistungsfach und Deutsch müssen schriftlich geprüft werden.`;}
+  else{sb.hidden=true;state.subst=false;}
+}
+function renderPicks(){
+  const sk=state.subst?substKind():null;
+  $('pickHint').textContent=state.lf?`${needed()} weitere Fächer auf grundlegendem Niveau wählen. Nur Fächer, die in 12 und 13 belegt sind; Deutsch und Mathematik sind gesetzt${sk?' (eines davon substituiert)':''}, Sport nur als Leistungsfach.`:'Zuerst ein Leistungsfach wählen.';
+  const rows=[{id:'D'},{id:'M'},...(state.lf?[{id:state.lf}]:[]),...abiCandidates()];
+  groupRows($('pickGroups'),rows,r=>{
+    if(r.id==='D'||r.id==='M'){const s=(sk===r.id);const b=chip(NAMES[r.id]+` <span class="tag">${s?'substituiert':'eA'}</span>`,!s,'ea');b.id='pick_'+r.id;return b;}
+    if(r.id===state.lf){const b=chip(NAMES[r.id]+' <span class="tag">LF</span>',true,'lf');b.id='pick_'+r.id;return b;}
+    const on=state.picks.includes(r.id);const b=chip(NAMES[r.id]+(oralOnly(r.id,'gA')?' <span class="tag">mdl.</span>':''),on);b.id='pick_'+r.id;b.disabled=!state.lf||(!on&&state.picks.length>=needed());
+    b.onclick=()=>{state.picks=on?state.picks.filter(x=>x!==r.id):[...state.picks,r.id];update();};return b;});
+}
+function renderAbi(){
+  const box=$('abiList');box.innerHTML='';if(!state.lf){box.innerHTML='<div class="empty">Erst Leistungsfach und weitere Fächer wählen.</div>';return;}
+  abiSet().forEach(e=>{const row=document.createElement('div');row.className='abirow';const n=document.createElement('div');n.className='name';n.innerHTML=`${e.name} <span class="pill ${e.level==='eA'?'ea':'ga'}">${e.level}${e.lf?' · LF':''}</span>`;
+    const seg=document.createElement('div');seg.className='seg';const oo=oralOnly(e.id,e.level);
+    [['S','schriftlich'],['M','mündlich']].forEach(([k,t])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.id='w_'+e.id+'_'+k;b.className=state.written[e.id]===k?'on':'';if(k==='S'&&oo)b.disabled=true;b.onclick=()=>{state.written[e.id]=k;update();};seg.append(b);});
+    row.append(n,seg);box.append(row);});
+}
+function renderHours(bc){
+  const rows=belegung();const H=['12/1','12/2','13/1','13/2'];
+  let html='<table><thead><tr><th>Fach</th>'+H.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+  for(const sec of ['Pflicht','Wahlpflicht','Profil','Zusatz']){const rs=rows.filter(r=>r.sec===sec);if(!rs.length&&!(sec==='Profil'))continue;
+    html+=`<tr class="sec"><td colspan="5">${sec==='Profil'?'Profil (Leistungsfach, W-Seminar)':sec}</td></tr>`;
+    for(const r of rs)html+=`<tr><td>${r.name}</td>${r.h.map(x=>`<td class="${x?'':'dim'}">${x||'–'}</td>`).join('')}</tr>`;
+    if(sec==='Profil')html+=`<tr><td>Leistungsfach ${state.lf?NAMES[state.lf]:'(noch keins)'} <span class="pill ea">+2</span></td>${[0,1,2,3].map(()=>`<td class="${state.lf?'lfc':'dim'}">${state.lf?'+2':'–'}</td>`).join('')}</tr>`;}
+  html+=`<tr class="total"><td>Summe</td>${bc.tot.map(x=>`<td>${x}</td>`).join('')}</tr></tbody></table>`;
+  $('hours').innerHTML=html;$('hoursSum').textContent=`${bc.sum} von mind. ${bc.min} Std.`;
+}
+function renderEB(){
+  const e=einbringung();const box=$('eb');box.innerHTML='';
+  e.items.filter(i=>i.p>0).forEach(i=>{const d=document.createElement('div');d.innerHTML=`<span>${i.name} <span class="why" style="color:var(--muted);font-size:.8rem">· ${i.why}</span></span><span>${i.p}</span>`;box.append(d);});
+  const t=document.createElement('div');t.className='tot';t.innerHTML=`<span>Pflichteinbringungen</span><span>${e.pf}</span>`;box.append(t);
+  const f=document.createElement('div');f.className='tot';f.style.borderTop='0';f.style.marginTop='0';f.style.paddingTop='0';f.innerHTML=`<span>Freie Einbringungen (Rest auf 40)</span><span>${e.free}</span>`;box.append(f);
+  $('ebSum').textContent=`${e.pf} Pflicht · ${Math.max(e.free,0)} frei`;
+  return e;
+}
+function renderRules(bc,eb){
+  const box=$('rules');box.innerHTML='';const all=[...bc.res];
+  if(state.lf){const a=checkSet(state.lf,state.picks,state.subst);all.push(...a.res,...checkWritten());
+    const ebOk=eb.pf<=40;const ebWarn=eb.pf===41;
+    all.push({ok:ebOk,warn:ebWarn,label:'Höchstens 40 Pflichteinbringungen',why:ebWarn?'41 Pflicht-HJL: nur über die Optionsregel (Streichen einer Pflichteinbringung in einem Nicht-Abiturfach mit vier Halbjahren) zulässig.':eb.pf>41?`${eb.pf} Pflicht-HJL – diese Kombination ist unzulässig.`:''});}
+  else all.push({ok:false,label:'Leistungsfach und Abiturfächer noch nicht gewählt',why:''});
+  all.forEach(r=>{const d=document.createElement('div');d.className='rule '+(r.ok?'ok':r.warn?'warn':'bad');d.innerHTML=`<span class="ic">${r.ok?'✓':r.warn?'!':'✗'}</span><span>${r.label}${r.why?`<span class="why">${r.why}</span>`:''}</span>`;box.append(d);});
+  const complete=state.lf&&state.picks.length===needed()&&abiSet().every(e=>state.written[e.id]);
+  return {ok:all.every(r=>r.ok||r.warn),hard:all.some(r=>!r.ok&&!r.warn),complete,belegOk:bc.ok};
+}
+function renderVerdict(v){
+  const el=$('verdict');const names=abiSet().map(e=>e.name+(e.lf?' (LF)':'')).join(' · ');
+  if(!state.lf){el.className='verdict '+(v.belegOk?'':'bad');el.innerHTML=`<h2>${v.belegOk?'Belegung in Ordnung':'Belegung prüfen'}</h2><p>${v.belegOk?'Jetzt Leistungsfach und Abiturfächer wählen.':'Siehe Regelprüfung.'}</p>`;return;}
+  if(v.ok&&v.complete){el.className='verdict ok';el.innerHTML=`<h2>Zulässige Kombination</h2><p>${names}</p>`;}
+  else if(!v.hard&&!v.complete){el.className='verdict warn';el.innerHTML=`<h2>Noch nicht fertig</h2><p>${state.picks.length<needed()?'Weitere Prüfungsfächer wählen.':'Schriftlich/mündlich für alle fünf Fächer festlegen.'}</p>`;}
+  else{el.className='verdict bad';el.innerHTML=`<h2>So nicht zulässig</h2><p>${names}<br>Siehe Regelprüfung.</p>`;}
+}
+function renderCombos(){
+  const box=$('comboList');box.innerHTML='';const info=$('comboInfo');
+  if(!state.lf){info.textContent='Leistungsfach wählen, dann erscheinen hier alle zulässigen Fächersätze.';return;}
+  const pool=abiCandidates().map(r=>r.id);const n=needed();const found=[];
+  const rec=(s,cur)=>{if(cur.length===n){if(checkSet(state.lf,cur,state.subst).ok)found.push([...cur]);return;}for(let i=s;i<pool.length;i++){cur.push(pool[i]);rec(i+1,cur);cur.pop();}};rec(0,[]);
+  const sk=state.subst?substKind():null;
+  info.textContent=`${found.length} Kombination${found.length===1?'':'en'} mit Leistungsfach ${NAMES[state.lf]}${sk?` (${sk==='D'?'Deutsch':'Mathematik'} substituiert)`:''} bei dieser Belegung (ohne schriftlich/mündlich und ohne Einbringungsgrenze). Antippen übernimmt die Fächer.`;
+  if(!found.length){box.innerHTML='<div class="empty">Keine zulässige Kombination mit dieser Belegung.</div>';return;}
+  found.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='combo';const parts=[`<span class="k lf">${NAMES[state.lf]} LF</span>`];
+    if(sk!=='D')parts.push('<span class="k ea">Deutsch</span>');if(sk!=='M')parts.push('<span class="k ea">Mathematik</span>');c.forEach(id=>parts.push(`<span class="k">${NAMES[id]}</span>`));
+    b.innerHTML=parts.join('');b.onclick=()=>{state.picks=[...c];update();};box.append(b);});
+}
+function sanitize(){
+  if(state.wp2===state.fs1||state.wp2===state.nw1)state.wp2=state.fs1==='E'?'C':'E';
+  if(state.wp2==='SPB'&&!state.spbOk)state.wp2='C';
+  if(state.wp2==='Inf'&&!state.ntg)state.wp2='InfS';if(state.wp2==='InfS'&&state.ntg)state.wp2='Inf';
+  if(state.q13!=='PuG'&&state.q13!==state.geowr)state.q13=state.geowr;
+  if(state.lf&&!lfCandidates().some(r=>r.id===state.lf)){state.lf=null;state.subst=false;}
+  const cand=new Set(abiCandidates().map(r=>r.id));state.picks=state.picks.filter(id=>cand.has(id));
+  while(state.picks.length>needed())state.picks.pop();
+  const ids=new Set(abiSet().map(e=>e.id));for(const k of Object.keys(state.written))if(!ids.has(k))delete state.written[k];
+  for(const e of abiSet())if(oralOnly(e.id,e.level)&&state.written[e.id]==='S')delete state.written[e.id];
+}
+function update(){
+  sanitize();
+  $('ntg').checked=state.ntg;$('spbOk').checked=state.spbOk;
+  renderBelegung();renderLF();renderPicks();renderAbi();
+  const bc=checkBelegung();renderHours(bc);const eb=renderEB();const v=renderRules(bc,eb);renderVerdict(v);renderCombos();
+  save();
+}
+$('ntg').onchange=e=>{state.ntg=e.target.checked;update();};
+$('spbOk').onchange=e=>{state.spbOk=e.target.checked;update();};
+$('subst').onchange=e=>{state.subst=e.target.checked;update();};
+$('reset').onclick=()=>{state=JSON.parse(JSON.stringify(DEF));update();};
+update();
+</script>
+
+</body>
+</html>
